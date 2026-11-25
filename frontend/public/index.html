@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MicroMart</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--ink:#1c2033;--mute:#565d70;--brand:#4f46e5;--brand2:#4338ca;--line:#e6e8f0;--ok:#16a34a;--bad:#dc2626}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.bar{max-width:1100px;margin:auto;padding:.8rem 1rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.logo{font-weight:800;font-size:1.25rem;color:var(--brand)}
+nav{display:flex;gap:.3rem;flex:1}
+nav button{background:none;border:0;padding:.5rem .8rem;border-radius:8px;cursor:pointer;font-size:.95rem;color:var(--mute)}
+nav button.on{background:#eef0ff;color:var(--brand);font-weight:600}
+.btn{background:var(--brand);color:#fff;border:0;padding:.55rem 1rem;border-radius:8px;cursor:pointer;font-size:.9rem}
+.btn:hover{background:var(--brand2)}.btn.ghost{background:#eef0ff;color:var(--brand)}.btn:disabled{opacity:.45;cursor:not-allowed}
+main{max-width:1100px;margin:1.2rem auto;padding:0 1rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:1rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem}
+.prod .em{font-size:3rem;text-align:center;background:var(--bg);border-radius:10px;padding:.8rem}
+.prod h3{margin:.7rem 0 .1rem;font-size:1rem}.prod p{margin:0 0 .6rem;color:var(--mute);font-size:.85rem}
+.row{display:flex;justify-content:space-between;align-items:center;gap:.5rem}
+.price{font-weight:700}.tag{font-size:.72rem;padding:.15rem .5rem;border-radius:99px;background:#eef0ff;color:var(--brand)}
+.low{color:#b45309}.out{color:var(--bad)}
+input,select{padding:.55rem .7rem;border:1px solid var(--line);border-radius:8px;font-size:.95rem;width:100%}
+.tools{display:flex;gap:.6rem;margin-bottom:1rem}.tools input{max-width:320px}.tools select{max-width:180px}
+.layout{display:grid;grid-template-columns:1fr 320px;gap:1rem}
+@media(max-width:800px){.layout{grid-template-columns:1fr}}
+.cartline{display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.qty button{width:24px;height:24px;border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer}
+.modal{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;z-index:10}
+.modal.show{display:flex}.modal .card{width:340px}.modal input{margin:.3rem 0}
+.toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:.7rem 1.1rem;border-radius:10px;display:none;z-index:20}
+.svc h3{margin:0;font-size:1rem;display:flex;align-items:center;gap:.5rem}
+.dot{width:10px;height:10px;border-radius:50%;background:#bbb;display:inline-block}.dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}
+.stat{display:flex;justify-content:space-between;font-size:.85rem;padding:.2rem 0;color:var(--mute)}.stat b{color:var(--ink)}
+.trace{display:flex;gap:.5rem;align-items:center;padding:.45rem 0;border-bottom:1px solid var(--line);font-size:.88rem}
+.trace .ms{margin-left:auto;color:var(--mute)}
+.empty{text-align:center;color:var(--mute);padding:2rem}
+h2{margin:.2rem 0 1rem}.err{color:var(--bad);font-size:.85rem;min-height:1.1em}
+</style></head><body>
+<header><div class="bar">
+  <div class="logo">🛍️ MicroMart</div>
+  <nav id="nav">
+    <button data-t="shop" class="on">Shop</button>
+    <button data-t="orders">My Orders</button>
+    <button data-t="inbox">Inbox <span id="badge"></span></button>
+    <button data-t="services">Services</button>
+  </nav>
+  <span id="who"></span>
+  <button class="btn" id="authBtn">Sign in</button>
+</div></header>
+
+<main>
+  <section id="shop">
+    <div class="layout"><div>
+      <div class="tools"><input id="q" placeholder="Search products…"><select id="cat"><option value="">All categories</option><option>Audio</option><option>Accessories</option><option>Displays</option><option>Wearables</option></select></div>
+      <div class="grid" id="products"></div>
+    </div>
+    <aside class="card" style="align-self:start;position:sticky;top:80px">
+      <h2 style="margin-top:0">🛒 Cart</h2><div id="cart"></div>
+      <div class="row" style="margin-top:.8rem"><b>Total</b><b id="total">$0.00</b></div>
+      <button class="btn" id="checkout" style="width:100%;margin-top:.8rem">Checkout</button>
+    </aside></div>
+  </section>
+  <section id="orders" hidden><h2>My Orders</h2><div id="orderList"></div></section>
+  <section id="inbox" hidden><h2>Inbox <small style="color:var(--mute);font-weight:400">(from notification-service)</small></h2><div id="inboxList"></div></section>
+  <section id="services" hidden>
+    <h2>Service status</h2><div class="grid" id="svcGrid"></div>
+    <h2 style="margin-top:1.5rem">Last checkout — request trace</h2>
+    <div class="card" id="trace"><div class="empty">Place an order to see how the services talk to each other.</div></div>
+  </section>
+</main>
+
+<div class="modal" id="modal"><div class="card">
+  <h2 id="mTitle">Sign in</h2>
+  <input id="mName" placeholder="Full name" style="display:none"><input id="mEmail" placeholder="Email" value="demo@micromart.dev"><input id="mPw" type="password" placeholder="Password" value="demo123">
+  <div class="err" id="mErr"></div>
+  <div class="row"><button class="btn" id="mGo">Sign in</button><button class="btn ghost" id="mSwitch">Create account</button><button class="btn ghost" id="mX">✕</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const money = (n) => '$' + n.toFixed(2);
+let token = localStorage.getItem('token'), user = JSON.parse(localStorage.getItem('user') || 'null');
+let cart = {}, products = [], lastTrace = null, mode = 'login';
+
+async function api(svc, path, opts = {}) {
+  const r = await fetch('/api/' + svc + path, { ...opts, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) } });
+  const data = await r.json().catch(() => ({}));
+  return { ok: r.ok, status: r.status, data };
+}
+const post = (b) => ({ method: 'POST', body: JSON.stringify(b) });
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(t._h); t._h = setTimeout(() => (t.style.display = 'none'), 2800); }
+
+// ---- tabs
+document.querySelectorAll('nav button').forEach((b) => (b.onclick = () => tab(b.dataset.t)));
+function tab(t) {
+  document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('on', b.dataset.t === t));
+  ['shop', 'orders', 'inbox', 'services'].forEach((s) => ($(s).hidden = s !== t));
+  if (t === 'orders') loadOrders(); if (t === 'inbox') loadInbox(); if (t === 'services') loadServices(); if (t === 'shop') loadProducts();
+}
+
+// ---- auth
+function renderAuth() {
+  $('who').textContent = user ? 'Hi, ' + user.name : '';
+  $('authBtn').textContent = user ? 'Sign out' : 'Sign in';
+}
+$('authBtn').onclick = () => {
+  if (user) { token = user = null; localStorage.clear(); renderAuth(); toast('Signed out'); refreshBadge(); return; }
+  setMode('login'); $('modal').classList.add('show');
+};
+$('mX').onclick = () => $('modal').classList.remove('show');
+$('mSwitch').onclick = () => setMode(mode === 'login' ? 'register' : 'login');
+function setMode(m) {
+  mode = m; $('mTitle').textContent = m === 'login' ? 'Sign in' : 'Create account';
+  $('mName').style.display = m === 'login' ? 'none' : 'block';
+  $('mGo').textContent = m === 'login' ? 'Sign in' : 'Sign up';
+  $('mSwitch').textContent = m === 'login' ? 'Create account' : 'Have an account?';
+  $('mErr').textContent = '';
+}
+$('mGo').onclick = async () => {
+  const body = { email: $('mEmail').value, password: $('mPw').value, name: $('mName').value };
+  const r = await api('user', mode === 'login' ? '/login' : '/register', post(body));
+  if (!r.ok) return ($('mErr').textContent = r.data.error || 'Failed');
+  token = r.data.token; user = r.data.user;
+  localStorage.setItem('token', token); localStorage.setItem('user', JSON.stringify(user));
+  $('modal').classList.remove('show'); renderAuth(); toast('Welcome, ' + user.name); refreshBadge();
+};
+
+// ---- shop
+async function loadProducts() {
+  const qs = new URLSearchParams({ q: $('q').value, category: $('cat').value });
+  const r = await api('product', '/products?' + qs);
+  if (!r.ok) return ($('products').innerHTML = '<div class="empty">Product service unavailable</div>');
+  products = r.data;
+  $('products').innerHTML = products.map((p) => `
+    <div class="card prod"><div class="em">${p.emoji}</div><h3>${esc(p.name)}</h3><p>${esc(p.description)}</p>
+    <div class="row"><span class="price">${money(p.price)}</span><span class="tag">${esc(p.category)}</span></div>
+    <div class="row" style="margin-top:.6rem"><small class="${p.stock === 0 ? 'out' : p.stock < 5 ? 'low' : ''}">${p.stock === 0 ? 'Out of stock' : p.stock + ' in stock'}</small>
+    <button class="btn" ${p.stock === 0 ? 'disabled' : ''} onclick="add(${p.id})">Add</button></div></div>`).join('') || '<div class="empty">No products match</div>';
+}
+$('q').oninput = loadProducts; $('cat').onchange = loadProducts;
+function add(id) { cart[id] = (cart[id] || 0) + 1; renderCart(); }
+function chg(id, d) { cart[id] = (cart[id] || 0) + d; if (cart[id] <= 0) delete cart[id]; renderCart(); }
+function renderCart() {
+  let total = 0; const ids = Object.keys(cart);
+  $('cart').innerHTML = ids.map((id) => {
+    const p = products.find((x) => x.id == id) || { name: '#' + id, price: 0, emoji: '' }; total += p.price * cart[id];
+    return `<div class="cartline"><span>${p.emoji} ${esc(p.name)}</span><span class="qty"><button onclick="chg(${id},-1)">−</button> ${cart[id]} <button onclick="chg(${id},1)">+</button></span></div>`;
+  }).join('') || '<div class="empty">Cart is empty</div>';
+  $('total').textContent = money(total); $('checkout').disabled = !ids.length;
+}
+$('checkout').onclick = async () => {
+  if (!user) { toast('Please sign in to checkout'); return $('authBtn').click(); }
+  const items = Object.entries(cart).map(([productId, qty]) => ({ productId: +productId, qty }));
+  const r = await api('order', '/orders', post({ items }));
+  lastTrace = r.data.trace;
+  if (!r.ok) { toast('⚠️ ' + (r.data.error || 'Checkout failed')); return loadProducts(); }
+  cart = {}; renderCart(); loadProducts(); refreshBadge();
+  toast(`✅ Order #${r.data.order.id} confirmed — ${money(r.data.order.total)}`);
+};
+
+// ---- orders / inbox
+async function loadOrders() {
+  if (!user) return ($('orderList').innerHTML = '<div class="empty">Sign in to see your orders</div>');
+  const r = await api('order', '/orders');
+  if (!r.ok) return ($('orderList').innerHTML = `<div class="empty">${esc(r.data.error || 'Error')}</div>`);
+  $('orderList').innerHTML = r.data.map((o) => `<div class="card" style="margin-bottom:.8rem">
+    <div class="row"><b>Order #${o.id}</b><span class="tag">${o.status}</span></div>
+    <small style="color:var(--mute)">${new Date(o.createdAt).toLocaleString()}</small>
+    ${o.items.map((i) => `<div class="cartline"><span>${i.emoji} ${esc(i.name)} × ${i.qty}</span><span>${money(i.price * i.qty)}</span></div>`).join('')}
+    <div class="row" style="margin-top:.5rem"><b>Total</b><b>${money(o.total)}</b></div></div>`).join('') || '<div class="empty">No orders yet</div>';
+}
+async function loadInbox() {
+  if (!user) return ($('inboxList').innerHTML = '<div class="empty">Sign in to see your notifications</div>');
+  const r = await api('notification', '/notifications?userId=' + user.id);
+  $('inboxList').innerHTML = (r.data || []).map((n) => `<div class="card" style="margin-bottom:.8rem"><b>📧 ${esc(n.subject)}</b>
+    <p style="margin:.3rem 0">${esc(n.message)}</p><small style="color:var(--mute)">${new Date(n.sentAt).toLocaleString()}</small></div>`).join('') || '<div class="empty">No notifications</div>';
+}
+async function refreshBadge() {
+  if (!user) return ($('badge').textContent = '');
+  const r = await api('notification', '/notifications?userId=' + user.id);
+  $('badge').textContent = r.ok && r.data.length ? `(${r.data.length})` : '';
+}
+
+// ---- services dashboard
+const SVCS = [['user', '👤 User', 'Accounts, login, token verification'], ['product', '📦 Product', 'Catalog & stock'], ['order', '🧾 Order', 'Checkout orchestration'], ['notification', '📧 Notification', 'Email notifications']];
+async function loadServices() {
+  const res = await Promise.all(SVCS.map(([s]) => api(s, '/health').catch(() => ({ ok: false, data: {} }))));
+  $('svcGrid').innerHTML = SVCS.map(([s, title, desc], i) => {
+    const { ok, data } = res[i]; const { service, status, ...stats } = data;
+    return `<div class="card svc"><h3><span class="dot ${ok ? 'ok' : 'bad'}"></span>${title} Service</h3><small style="color:var(--mute)">${desc}</small>
+      <div style="margin-top:.6rem">${ok ? Object.entries(stats).map(([k, v]) => `<div class="stat"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('') : '<div class="err">Unreachable</div>'}</div></div>`;
+  }).join('');
+  $('trace').innerHTML = lastTrace ? lastTrace.map((t, i) => `<div class="trace"><span>${i + 1}.</span><span class="dot ${t.ok ? 'ok' : 'bad'}"></span><b>${t.service}</b><span>${esc(t.action)}</span><span class="ms">${t.ms} ms</span></div>`).join('') : '<div class="empty">Place an order to see how the services talk to each other.</div>';
+}
+
+renderAuth(); renderCart(); loadProducts().then(renderCart); refreshBadge();
+</script></body></html>
